@@ -234,6 +234,7 @@ async function prepareResource(label: string, res: Resource, custom: boolean,
     if (opts.parent) {
         parentURN = await opts.parent.urn.promise();
     } else {
+        // If no parent was provided, parent to the root resource.
         parentURN = await getRootResource();
     }
 

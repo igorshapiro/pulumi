@@ -63,6 +63,7 @@ func newHostServer(host Host, ctx *Context) (*hostServer, error) {
 
 	engine.addr = fmt.Sprintf("127.0.0.1:%d", port)
 	engine.done = done
+	engine.rootUrn.Store("")
 
 	return engine, nil
 }
