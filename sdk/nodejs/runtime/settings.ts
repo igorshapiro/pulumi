@@ -213,14 +213,20 @@ export function rpcKeepAlive(): () => void {
 let rootResource: Promise<URN> | undefined;
 
 /**
- * getRootResource returns a root resource that will automatically become the default parent of all resources.  This
+ * getRootResource returns a root resource URN that will automatically become the default parent of all resources.  This
  * can be used to ensure that all resources without explicit parents are parented to a common parent resource.
  */
 export function getRootResource(): Promise<URN | undefined> {
     const engineRef: any = getEngine();
+    if (!engineRef) {
+        return Promise.resolve(undefined);
+    }
+
     const req = new engproto.GetRootResourceRequest();
-    return new Promise<URN>((resolve, reject) => {
+    return new Promise<URN | undefined>((resolve, reject) => {
         engineRef.getRootResource(req, (err: grpc.ServiceError, resp: any) => {
+            // Back-compat case - if the engine we're speaking to isn't aware that it can save and load root resources,
+            // fall back to the old behavior.
             if (err && err.code === grpc.status.UNIMPLEMENTED) {
                 if (rootResource) {
                     rootResource.then(resolve);
@@ -249,12 +255,18 @@ export function getRootResource(): Promise<URN | undefined> {
  */
 export async function setRootResource(res: ComponentResource): Promise<void> {
     const engineRef: any = getEngine();
+    if (!engineRef) {
+        return Promise.resolve();
+    }
+
     const req = new engproto.SetRootResourceRequest();
     const urn = await res.urn.promise();
     req.setUrn(urn);
 
     return new Promise<void>((resolve, reject) => {
         engineRef.setRootResource(req, (err: grpc.ServiceError, resp: any) => {
+            // Back-compat case - if the engine we're speaking to isn't aware that it can save and load root resources,
+            // fall back to the old behavior.
             if (err && err.code === grpc.status.UNIMPLEMENTED) {
                 rootResource = res.urn.promise();
                 return resolve();
@@ -267,11 +279,4 @@ export async function setRootResource(res: ComponentResource): Promise<void> {
             return resolve();
         });
     });
-
-    /*
-    if (rootResource && res) {
-        throw new Error("Cannot set multiple root resources");
-    }
-    rootResource = res;
-    */
 }

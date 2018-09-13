@@ -101,13 +101,15 @@ func (eng *hostServer) Log(ctx context.Context, req *lumirpc.LogRequest) (*pbemp
 	return &pbempty.Empty{}, nil
 }
 
-func (eng *hostServer) GetRootResource(ctx context.Context, req *lumirpc.GetRootResourceRequest) (*lumirpc.GetRootResourceResponse, error) {
+func (eng *hostServer) GetRootResource(ctx context.Context,
+	req *lumirpc.GetRootResourceRequest) (*lumirpc.GetRootResourceResponse, error) {
 	var response lumirpc.GetRootResourceResponse
 	response.Urn = eng.rootUrn.Load().(string)
 	return &response, nil
 }
 
-func (eng *hostServer) SetRootResource(ctx context.Context, req *lumirpc.SetRootResourceRequest) (*lumirpc.SetRootResourceResponse, error) {
+func (eng *hostServer) SetRootResource(ctx context.Context,
+	req *lumirpc.SetRootResourceRequest) (*lumirpc.SetRootResourceResponse, error) {
 	var response lumirpc.SetRootResourceResponse
 	eng.rootUrn.Store(req.GetUrn())
 	return &response, nil
