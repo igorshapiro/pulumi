@@ -16,6 +16,7 @@ package plugin
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	pbempty "github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
@@ -35,6 +36,8 @@ type hostServer struct {
 	addr   string     // the address the host is listening on.
 	cancel chan bool  // a channel that can cancel the server.
 	done   chan error // a channel that resolves when the server completes.
+
+	rootUrn atomic.Value
 }
 
 // newHostServer creates a new host server wired up to the given host and context.
@@ -96,4 +99,16 @@ func (eng *hostServer) Log(ctx context.Context, req *lumirpc.LogRequest) (*pbemp
 		eng.host.Log(sev, resource.URN(req.Urn), req.Message, req.StreamId)
 	}
 	return &pbempty.Empty{}, nil
+}
+
+func (eng *hostServer) GetRootResource(ctx context.Context, req *lumirpc.GetRootResourceRequest) (*lumirpc.GetRootResourceResponse, error) {
+	var response lumirpc.GetRootResourceResponse
+	response.Urn = eng.rootUrn.Load().(string)
+	return &response, nil
+}
+
+func (eng *hostServer) SetRootResource(ctx context.Context, req *lumirpc.SetRootResourceRequest) (*lumirpc.SetRootResourceResponse, error) {
+	var response lumirpc.SetRootResourceResponse
+	eng.rootUrn.Store(req.GetUrn())
+	return &response, nil
 }

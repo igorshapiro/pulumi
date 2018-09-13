@@ -15,7 +15,7 @@
 import * as log from "../log";
 import { getProject, getStack } from "../metadata";
 import { ComponentResource, Inputs, Resource } from "../resource";
-import { getRootResource, setRootResource } from "./settings";
+import { /*getRootResource,*/ setRootResource } from "./settings";
 
 /**
  * rootPulumiStackTypeName is the type name that should be used to construct the root component in the tree of Pulumi
@@ -36,9 +36,11 @@ class Stack extends ComponentResource {
     constructor(init: () => Inputs) {
         super(rootPulumiStackTypeName, `${getProject()}-${getStack()}`);
 
+        /*
         if (getRootResource()) {
             throw new Error("Only one root Pulumi Stack may be active at once");
         }
+        */
         let outputs: Inputs | undefined;
         try {
             setRootResource(this);      // install ourselves as the current root.
