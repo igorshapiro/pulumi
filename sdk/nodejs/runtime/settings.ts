@@ -268,7 +268,8 @@ export async function setRootResource(res: ComponentResource): Promise<void> {
             // Back-compat case - if the engine we're speaking to isn't aware that it can save and load root resources,
             // fall back to the old behavior.
             if (err && err.code === grpc.status.UNIMPLEMENTED) {
-                rootResource = res.urn.promise();
+                rootResource = Promise.resolve(urn);
+                console.log("setting: " + urn);
                 return resolve();
             }
 

@@ -42,6 +42,7 @@ interface RunCase {
         count?: number;
         ignoreDebug?: boolean;
     };
+    skipRootResourceEndpoints?: boolean;
     invoke?: (ctx: any, tok: string, args: any) => { failures: any, ret: any };
     readResource?: (ctx: any, t: string, name: string, id: string, par: string, state: any) => {
         urn: URN | undefined, props: any | undefined };
@@ -512,6 +513,17 @@ describe("rpc", () => {
                 });
             },
         },
+        "backcompat_root_resource": {
+            program: path.join(base, "001.one_resource"),
+            expectResourceCount: 1,
+            skipRootResourceEndpoints: true,
+            registerResource: (ctx: any, dryrun: boolean, t: string, name: string, res: any) => {
+                assert.strictEqual(t, "test:index:MyResource");
+                assert.strictEqual(name, "testResource1");
+                assert.strictEqual(parent, "pulumi:pulumi:Stack");
+                return { urn: makeUrn(t, name), id: undefined, props: undefined };
+            },
+        },
     };
 
     for (const casename of Object.keys(cases)) {
@@ -527,7 +539,7 @@ describe("rpc", () => {
                 let rootResource: string | undefined;
                 let regCnt = 0;
                 let logCnt = 0;
-                const monitor = createMockEngine(
+                const monitor = createMockEngine(opts,
                     // Invoke callback
                     (call: any, callback: any) => {
                         const resp = new resproto.InvokeResponse();
@@ -738,6 +750,7 @@ function mockRun(langHostClient: any, monitor: string, opts: RunCase, dryrun: bo
 // Despite the name, the "engine" RPC endpoint is only a logging endpoint. createMockEngine fires up a fake
 // logging server so tests can assert that certain things get logged.
 function createMockEngine(
+        opts: RunCase,
         invokeCallback: (call: any, request: any) => any,
         readResourceCallback: (call: any, request: any) => any,
         registerResourceCallback: (call: any, request: any) => any,
@@ -753,12 +766,20 @@ function createMockEngine(
         registerResource: registerResourceCallback,
         registerResourceOutputs: registerResourceOutputsCallback,
     });
-    server.addService(enginerpc.EngineService, {
-        log: logCallback,
-        getRootResource: getRootResourceCallback,
-        setRootResource: setRootResourceCallback,
-    });
 
+    let engineImpl: Object = {
+        log: logCallback,
+    };
+
+    if (!opts.skipRootResourceEndpoints) {
+        engineImpl = {
+            ... engineImpl,
+            getRootResource: getRootResourceCallback,
+            setRootResource: setRootResourceCallback,
+        };
+    }
+
+    server.addService(enginerpc.EngineService, engineImpl);
     const port = server.bind("0.0.0.0:0", grpc.ServerCredentials.createInsecure());
     server.start();
     return { server: server, addr: `0.0.0.0:${port}` };
