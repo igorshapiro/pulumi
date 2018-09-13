@@ -262,14 +262,12 @@ export async function setRootResource(res: ComponentResource): Promise<void> {
     const req = new engproto.SetRootResourceRequest();
     const urn = await res.urn.promise();
     req.setUrn(urn);
-
     return new Promise<void>((resolve, reject) => {
         engineRef.setRootResource(req, (err: grpc.ServiceError, resp: any) => {
             // Back-compat case - if the engine we're speaking to isn't aware that it can save and load root resources,
             // fall back to the old behavior.
             if (err && err.code === grpc.status.UNIMPLEMENTED) {
-                rootResource = Promise.resolve(urn);
-                console.log("setting: " + urn);
+                rootResource = res.urn.promise();
                 return resolve();
             }
 

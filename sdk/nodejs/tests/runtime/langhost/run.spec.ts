@@ -43,6 +43,7 @@ interface RunCase {
         ignoreDebug?: boolean;
     };
     skipRootResourceEndpoints?: boolean;
+    showRootResourceRegistration?: boolean;
     invoke?: (ctx: any, tok: string, args: any) => { failures: any, ret: any };
     readResource?: (ctx: any, t: string, name: string, id: string, par: string, state: any) => {
         urn: URN | undefined, props: any | undefined };
@@ -513,14 +514,38 @@ describe("rpc", () => {
                 });
             },
         },
-        "backcompat_root_resource": {
+        "root_resource": {
             program: path.join(base, "001.one_resource"),
-            expectResourceCount: 1,
-            skipRootResourceEndpoints: true,
-            registerResource: (ctx: any, dryrun: boolean, t: string, name: string, res: any) => {
+            expectResourceCount: 2,
+            showRootResourceRegistration: true,
+            registerResource: (ctx: any, dryrun: boolean, t: string, name: string, res: any, deps: string[],
+                               custom: boolean, protect: boolean, parent: string) => {
+                if (t === "pulumi:pulumi:Stack") {
+                    ctx.stackUrn = makeUrn(t, name);
+                    return { urn: makeUrn(t, name), id: undefined, props: undefined };
+                }
+
                 assert.strictEqual(t, "test:index:MyResource");
                 assert.strictEqual(name, "testResource1");
-                assert.strictEqual(parent, "pulumi:pulumi:Stack");
+                assert.strictEqual(parent, ctx.stackUrn);
+                return { urn: makeUrn(t, name), id: undefined, props: undefined };
+            },
+        },
+        "backcompat_root_resource": {
+            program: path.join(base, "001.one_resource"),
+            expectResourceCount: 2,
+            skipRootResourceEndpoints: true,
+            showRootResourceRegistration: true,
+            registerResource: (ctx: any, dryrun: boolean, t: string, name: string, res: any, deps: string[],
+                               custom: boolean, protect: boolean, parent: string) => {
+                if (t === "pulumi:pulumi:Stack") {
+                    ctx.stackUrn = makeUrn(t, name);
+                    return { urn: makeUrn(t, name), id: undefined, props: undefined };
+                }
+
+                assert.strictEqual(t, "test:index:MyResource");
+                assert.strictEqual(name, "testResource1");
+                assert.strictEqual(parent, ctx.stackUrn);
                 return { urn: makeUrn(t, name), id: undefined, props: undefined };
             },
         },
@@ -574,7 +599,7 @@ describe("rpc", () => {
                         const resp = new resproto.RegisterResourceResponse();
                         const req: any = call.request;
                         // Skip the automatically generated root component resource.
-                        if (req.getType() !== runtime.rootPulumiStackTypeName) {
+                        if (req.getType() !== runtime.rootPulumiStackTypeName || opts.showRootResourceRegistration) {
                             if (opts.registerResource) {
                                 const t = req.getType();
                                 const name = req.getName();
@@ -618,7 +643,7 @@ describe("rpc", () => {
                         const urn = req.getUrn();
                         const streamId = req.getStreamid();
                         if (severity === engineproto.LogSeverity.ERROR) {
-                            console.log("log error: " + message);
+                            console.log("log: " + message);
                         }
                         if (opts.expectedLogs) {
                             if (!opts.expectedLogs.ignoreDebug || severity !== engineproto.LogSeverity.DEBUG) {
