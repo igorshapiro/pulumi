@@ -37,7 +37,8 @@ type hostServer struct {
 	cancel chan bool  // a channel that can cancel the server.
 	done   chan error // a channel that resolves when the server completes.
 
-	rootUrn atomic.Value
+	// hostServer contains little bits of state that can't be saved in the language host.
+	rootUrn atomic.Value // a root resource URN that has been saved via SetRootResource
 }
 
 // newHostServer creates a new host server wired up to the given host and context.
@@ -101,6 +102,8 @@ func (eng *hostServer) Log(ctx context.Context, req *lumirpc.LogRequest) (*pbemp
 	return &pbempty.Empty{}, nil
 }
 
+// GetRootResource returns the current root resource's URN, which will serve as the parent of resources that are
+// otherwise left unparented.
 func (eng *hostServer) GetRootResource(ctx context.Context,
 	req *lumirpc.GetRootResourceRequest) (*lumirpc.GetRootResourceResponse, error) {
 	var response lumirpc.GetRootResourceResponse
@@ -108,6 +111,8 @@ func (eng *hostServer) GetRootResource(ctx context.Context,
 	return &response, nil
 }
 
+// SetRootResources sets the current root resource's URN. Generally only called on startup when the Stack resource is
+// registered.
 func (eng *hostServer) SetRootResource(ctx context.Context,
 	req *lumirpc.SetRootResourceRequest) (*lumirpc.SetRootResourceResponse, error) {
 	var response lumirpc.SetRootResourceResponse
